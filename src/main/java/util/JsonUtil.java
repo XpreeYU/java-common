@@ -7,6 +7,15 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 
 import com.alibaba.fastjson.JSON;
+
+/**
+ * 
+ * @title JsonUtil
+ *
+ * @explain json数据处理工具类
+ * @author yujiansong
+ * @date 2016年9月7日
+ */
 public class JsonUtil{
 	private static ObjectMapper mapper = new ObjectMapper();
 	

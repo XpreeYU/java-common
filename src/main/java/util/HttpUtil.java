@@ -24,7 +24,7 @@ import org.apache.http.util.EntityUtils;
 
 /**
  * 发送HTTP请求帮助类
- * @author Rong.zhu
+ * @author yujiansong
  *
  */
 public class HttpUtil {
