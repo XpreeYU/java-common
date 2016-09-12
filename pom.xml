@@ -60,6 +60,13 @@
 	    <artifactId>commons-beanutils</artifactId>
 	    <version>1.9.2</version>
 	</dependency>
+	
+	<!-- redis -->
+	<dependency>
+		<groupId>redis.clients</groupId>
+		<artifactId>jedis</artifactId>
+		<version>2.6.0</version>
+	</dependency>
     
   </dependencies>
  
