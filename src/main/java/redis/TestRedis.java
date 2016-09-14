@@ -10,6 +10,14 @@ import org.junit.Test;
 
 import redis.clients.jedis.Jedis;
 
+/**
+ * 
+ * @title TestRedis
+ *
+ * @explain Redis测试
+ * @author yujiansong
+ * @date 2016年9月13日
+ */
 public class TestRedis {
     private Jedis jedis; 
     
@@ -24,13 +32,14 @@ public class TestRedis {
     /**
      * redis存储字符串
      */
-    @Test
+//    @Test
     public void testString() {
         //-----添加数据----------  
-        jedis.set("name","xinxin");//向key-->name中放入了value-->xinxin  
-        System.out.println(jedis.get("name"));//执行结果：xinxin  
+        jedis.set("name","yujianson");//向key-->name中放入了value-->yujiansong
+        System.out.println(jedis.get("name"));//执行结果：yujiansong
         
-        jedis.append("name", " is my lover"); //拼接
+        //拼接
+        jedis.append("name", " is my name"); 
         System.out.println(jedis.get("name")); 
         
         jedis.del("name");  //删除某个键
@@ -45,11 +54,11 @@ public class TestRedis {
     /**
      * redis操作Map
      */
- //   @Test
+//    @Test
     public void testMap() {
         //-----添加数据----------  
         Map<String, String> map = new HashMap<String, String>();
-        map.put("name", "xinxin");
+        map.put("name", "yujiansong");
         map.put("age", "22");
         map.put("qq", "123456");
         jedis.hmset("user",map);
@@ -76,7 +85,7 @@ public class TestRedis {
     /** 
      * jedis操作List 
      */  
- //   @Test  
+//    @Test  
     public void testList(){  
         //开始前，先移除所有的内容  
         jedis.del("java framework");  
@@ -99,8 +108,11 @@ public class TestRedis {
     /** 
      * jedis操作Set 
      */  
- //   @Test  
+  //  @Test  
     public void testSet(){  
+    	
+    	//清楚user为键的数据
+    	jedis.del("user");
         //添加  
         jedis.sadd("user","liuling");  
         jedis.sadd("user","xinxin");  
@@ -115,7 +127,7 @@ public class TestRedis {
         System.out.println(jedis.scard("user"));//返回集合的元素个数  
     }  
   
- //   @Test  
+   // @Test  
     public void test() throws InterruptedException {  
         //jedis 排序  
         //注意，此处的rpush和lpush是List的操作。是一个双向链表（但从表现来看的）  
@@ -131,7 +143,14 @@ public class TestRedis {
     
  //   @Test
     public void testRedisPool() {
-        RedisUtil.getJedis().set("newname", "中文测试");
-        System.out.println(RedisUtil.getJedis().get("newname"));
+        RedisUtilTest.getJedis().set("newname", "中文测试");
+        System.out.println(RedisUtilTest.getJedis().get("newname"));
+    }
+    
+    @Test
+    public void testRedisPools() throws Exception{
+    	
+    	RedisUtil.getJedisResource().set("chinaName", "yujiansong");
+    	System.out.println(RedisUtil.getJedisResource().get("chinaName"));
     }
 }

@@ -1,80 +1,113 @@
 package redis;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 
-public final class RedisUtil {
-    
-    //Redis服务器IP
-    private static String ADDR = "10.19.105.131";
-    
-    //Redis的端口号
- //   private static int PORT = 6379;
-    private static int PORT = 9400;
-    
-    //访问密码
-    private static String AUTH = "";
-    
-    //可用连接实例的最大数目，默认值为8；
-    //如果赋值为-1，则表示不限制；如果pool已经分配了maxActive个jedis实例，则此时pool的状态为exhausted(耗尽)。
-    private static int MAX_ACTIVE = 1024;
-    
-    //控制一个pool最多有多少个状态为idle(空闲的)的jedis实例，默认值也是8。
-    private static int MAX_IDLE = 200;
-    
-    //等待可用连接的最大时间，单位毫秒，默认值为-1，表示永不超时。如果超过等待时间，则直接抛出JedisConnectionException；
-    private static int MAX_WAIT = 10000;
-    
-    private static int TIMEOUT = 10000;
-    
-    //在borrow一个jedis实例时，是否提前进行validate操作；如果为true，则得到的jedis实例均是可用的；
-    private static boolean TEST_ON_BORROW = true;
-    
-    private static JedisPool jedisPool = null;
-    
-    /**
-     * 初始化Redis连接池
-     */
-    static {
-        try {
-            JedisPoolConfig config = new JedisPoolConfig();
-            config.setMaxIdle(MAX_ACTIVE);
-            config.setMaxIdle(MAX_IDLE);
-            config.setMaxWaitMillis(MAX_WAIT);
-            config.setTestOnBorrow(TEST_ON_BORROW);
-  //          jedisPool = new JedisPool(config, ADDR, PORT, TIMEOUT, AUTH);
-            jedisPool = new JedisPool(config, ADDR, PORT, TIMEOUT);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-    
-    /**
-     * 获取Jedis实例
-     * @return
-     */
-    public synchronized static Jedis getJedis() {
-        try {
-            if (jedisPool != null) {
-                Jedis resource = jedisPool.getResource();
-                return resource;
-            } else {
-                return null;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-    
-    /**
-     * 释放jedis资源
-     * @param jedis
-     */
-    public static void returnResource(final Jedis jedis) {
-        if (jedis != null) {
-            jedisPool.returnResource(jedis);
-        }
-    }
+/**
+ * Redis工具类
+ * @author yujiansong
+ *
+ */
+public class RedisUtil {
+//	private static Logger log = Logger.getLogger(RedisUtil.class);
+	
+	private static JedisPool jedisPool = null; //Jedis连接池
+	private static JedisPoolConfig poolConfig = null;//Jedis连接池配置
+	
+	private static String redisHost;//主机
+	private static int redisPort;//端口
+	
+	public static int expireTime;//key过期时间(过期后被自动删除)
+	
+	/**
+	 * 获取redis连接
+	 * @return
+	 * @throws Exception
+	 */
+	public static Jedis getJedisResource() throws Exception {
+		if(poolConfig == null) {
+			loadConfig();
+		}
+		
+		if(jedisPool == null) {
+			jedisPool = new JedisPool(poolConfig, redisHost, redisPort);
+		}
+		try{
+			return jedisPool.getResource();
+		}catch(Exception e) {
+			jedisPool = null;
+			throw new Exception("Redis服务["+redisHost+":"+redisPort+"]无法正常使用!");
+		}
+		
+	}
+	
+	/**
+	 * 释放redis连接
+	 * @param jedis
+	 * @param isJedisConnectExeptionOccured
+	 */
+	public static void returnJedisResource(Jedis jedis, boolean isJedisConnectExeptionOccured) {
+		if(jedis != null) {
+			if(isJedisConnectExeptionOccured) {
+				//如果jedis连接出错必须调用此方法释放jedis到池中（释放之前清空缓冲区,否则可能出现脏数据）
+				jedisPool.returnBrokenResource(jedis);
+			}else {
+				jedisPool.returnResource(jedis);
+			}
+		}
+		
+	}
+	
+	/**
+	 * 重置redis连接池配置
+	 */
+	public static void resetJedisPool() {
+		if(jedisPool != null)
+			jedisPool.destroy();
+		jedisPool = null;
+		poolConfig= null;
+	}
+	
+	private static void loadConfig() {
+		//加载配置文件
+		InputStream stream = null;
+		try {
+			Properties props = new Properties();
+			stream = Thread.currentThread().getContextClassLoader().getResourceAsStream("redis.properties");
+			props.load(stream);
+			
+			redisHost = props.getProperty("redis.host").trim();
+			redisPort = Integer.parseInt(props.getProperty("redis.port").trim());
+			
+			poolConfig = new JedisPoolConfig();
+			poolConfig.setMaxIdle(Integer.parseInt(props.getProperty("redis.pool.maxIdle").trim()));
+			poolConfig.setMaxTotal(Integer.parseInt(props.getProperty("redis.pool.maxActive").trim()));
+			poolConfig.setMaxWaitMillis(Long.parseLong(props.getProperty("redis.pool.maxWait").trim()));
+			poolConfig.setMinEvictableIdleTimeMillis(Long.parseLong(props.getProperty("redis.pool.minEvictableIdleTimeMillis").trim()));
+			poolConfig.setTimeBetweenEvictionRunsMillis(Long.parseLong(props.getProperty("redis.pool.timeBetweenEvictableRunsMillis").trim()));
+			poolConfig.setTestOnBorrow(Boolean.parseBoolean(props.getProperty("redis.pool.testOnBorrow").trim()));
+			poolConfig.setTestOnReturn(Boolean.parseBoolean(props.getProperty("redis.pool.testOnReturn").trim()));
+			poolConfig.setTestWhileIdle(Boolean.parseBoolean(props.getProperty("redis.pool.testWhileIdle").trim()));
+			
+			expireTime = Integer.parseInt(props.getProperty("redis.expire.seconds").trim());
+					
+	//		log.debug("配置文件redis.properties加载成功！");
+		} catch (IOException e) {
+	//		log.error("配置文件redis.properties加载失败！");
+		} finally{
+			if(stream != null) {
+				try {
+					stream.close();
+				} catch (IOException e) {
+	//				log.error(e.getMessage());
+				}
+				stream = null;
+			}
+		}
+	}
 }
