@@ -1,7 +1,7 @@
 package interview.thread.countDownLatch;
 
 /**
- * 
+ * http://www.importnew.com/15731.html
  * @author yujiansong
  *	  @date 2017年11月8日
  */
